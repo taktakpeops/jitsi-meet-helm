@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "jitsi-meet.name-prosody" . }}
+  labels:
+{{ include "jitsi-meet.labels" . | indent 4 }}
+spec:
+  type: {{ .Values.prosody.service.type }}
+  ports:
+    - port: {{ .Values.prosody.service.portC2S1 }}
+      targetPort: c2s1
+      protocol: TCP
+      name: c2s1
+    - port: {{ .Values.prosody.service.portC2S2 }}
+      targetPort: c2s2
+      protocol: TCP
+      name: c2s2
+    - port: 5280
+      targetPort: web
+      protocol: TCP
+      name: web
+  selector:
+    app.kubernetes.io/name: {{ include "jitsi-meet.name-prosody" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}

@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "jitsi-meet.name-jicofo-config" . }}
+  labels:
+{{ include "jitsi-meet.labels" . | indent 4 }}
+data:
+  {{ if .Values.jicofo.userAuth.enabled }}
+  JICOFO_AUTH_PASSWORD: {{ .Values.jicofo.userAuth.secret }}
+  {{ end }}
+  JICOFO_COMPONENT_SECRET: {{ .Values.jicofo.componentSecret }}

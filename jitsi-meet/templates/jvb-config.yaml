@@ -1,0 +1,10 @@
+{{- if .Values.jvb.userAuth.enabled -}}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "jitsi-meet.name-jvb-config" . }}
+  labels:
+{{ include "jitsi-meet.labels" . | indent 4 }}
+data:
+  JVB_AUTH_PASSWORD: {{ .Values.jvb.userAuth.secret }}
+{{- end -}}

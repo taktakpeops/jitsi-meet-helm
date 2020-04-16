@@ -1,0 +1,135 @@
+# Default values for jitsi-meet.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+image:
+  pullSecrets: []
+
+web:
+  image:
+    repository: jitsi/web
+    tag: latest
+    pullPolicy: Always
+  environment:
+    - name: ENABLE_LETSENCRYPT
+      value: false
+  replicaCount: 1
+  hpa:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 3
+    metrics:
+      targetCPUUtilizationPercentage: 70
+      targetMemoryUtilizationPercentage: 70
+  service:
+    annotations: []
+    type: ClusterIP
+    port: 80
+  ingress:
+    enabled: false
+    annotations: []
+    hosts:
+      - host: jitsi.meet.local
+        paths: []
+    tls: []
+  resources: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+prosody:
+  image:
+    repository: jitsi/prosody
+    tag: latest
+    pullPolicy: Always
+  environment:
+    - name: ENABLE_GUEST
+      value: true
+  replicaCount: 1
+  service:
+    annotations: []
+    type: ClusterIP
+    portC2S1: 5222
+    portC2S2: 5322
+    sessionAffinityConfig:
+      clientIPConfig:
+        timeoutSeconds: 10800 # 3 hours
+  hpa:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 3
+    metrics:
+      - type: Resource
+        resource:
+          name: memory
+          targetAverageUtilization: 70
+      - type: Resource
+        resource:
+          name: cpu
+          targetAverageUtilization: 70
+  resources: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+jicofo: # jicofo is used as a sidecar container for every prosody instance
+  image:
+    repository: jitsi/jicofo
+    tag: latest
+    pullPolicy: Always
+  environment: []
+  componentSecret: ""
+  userAuth:
+    enabled: false
+    name: "focus"
+    secret: ""
+  resources: {}
+
+jvb:
+  image:
+    repository: jitsi/prosody
+    tag: latest
+    pullPolicy: Always
+  environment: []
+  securityContext:
+    fsGroup: 412
+  service:
+    annotations: []
+    type: NodePort
+    externalTrafficPolicy: Cluster
+    udpPort: 10000
+    tcpPort: 4443
+  ingress:
+    enabled: false
+  resources: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  userAuth:
+    enabled: false
+    name: "jvb"
+    secret: ""
+
+ingressControllerNamespace: ""
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name:
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+

@@ -1,0 +1,115 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "jitsi-meet.name-prosody" . }}
+  labels:
+{{ include "jitsi-meet.labels" . | indent 4 }}
+spec:
+  replicas: {{ .Values.jicofo.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "jitsi-meet.name-prosody" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "jitsi-meet.name-prosody" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+    {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      serviceAccountName: {{ template "jitsi-meet.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ include "jitsi-meet.name-jicofo" . }}
+          image: "{{ .Values.jicofo.image.repository }}:{{ .Values.jicofo.image.tag }}"
+          imagePullPolicy: {{ .Values.jicofo.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          env:
+            {{ if .Values.jicofo.userAuth.enabled }}
+            - name: JICOFO_USER
+              value: {{ .Values.jicofo.userAuth.name | quote }}
+            - name: JICOFO_AUTH_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "jitsi-meet.name-jicofo-config" . }}
+                  key: JICOFO_AUTH_PASSWORD
+            {{ end }}
+            {{ if .Values.jicofo.componentSecret }}
+            - name: JICOFO_COMPONENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "jitsi-meet.name-jicofo-config" . }}
+                  key: JICOFO_COMPONENT_SECRET
+            {{ end }}
+            - name: XMPP_SERVER
+              value: localhost
+            {{- range .Values.jicofo.environment }}
+            - name: {{ .name | quote }}
+              value: {{ .value | quote }}
+            {{- end }}
+          resources:
+            {{- toYaml .Values.jicofo.resources | nindent 12 }}
+        - name: {{ include "jitsi-meet.name-prosody" . }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.prosody.image.repository }}:{{ .Values.prosody.image.tag }}"
+          imagePullPolicy: {{ .Values.prosody.image.pullPolicy }}
+          env:
+            {{ if .Values.jicofo.userAuth.enabled }}
+            - name: JICOFO_USER
+              value: {{ .Values.jicofo.userAuth.name }}
+            - name: JICOFO_AUTH_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "jitsi-meet.name-jicofo-config" . }}
+                  key: JICOFO_AUTH_PASSWORD
+            {{ end }}
+            {{ if .Values.jicofo.componentSecret }}
+            - name: JICOFO_COMPONENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "jitsi-meet.name-jicofo-config" . }}
+                  key: JICOFO_COMPONENT_SECRET
+            {{ end }}
+            {{- if .Values.jvb.userAuth.enabled }}
+            - name: JVB_USER
+              value: {{ .Values.jvb.userAuth.name }}
+            - name: JVB_AUTH_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ template "jitsi-meet.name-jvb-config" . }}
+                  key: JVB_AUTH_PASSWORD
+            {{- end }}
+            {{- range .Values.prosody.environment }}
+            - name: {{ .name | quote }}
+              value: {{ .value | quote }}
+            {{- end }}
+          ports:
+            - containerPort: 5222
+              protocol: TCP
+              name: c2s1
+            - containerPort: 5322
+              protocol: TCP
+              name: c2s2
+            - containerPort: 5280
+              protocol: TCP
+              name: web
+          resources:
+            {{- toYaml .Values.prosody.resources | nindent 12 }}
+      {{- with .Values.prosody.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.prosody.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.prosody.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
