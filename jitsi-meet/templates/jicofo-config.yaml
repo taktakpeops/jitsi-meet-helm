@@ -6,6 +6,6 @@ metadata:
 {{ include "jitsi-meet.labels" . | indent 4 }}
 data:
   {{ if .Values.jicofo.userAuth.enabled }}
-  JICOFO_AUTH_PASSWORD: {{ .Values.jicofo.userAuth.secret }}
+  JICOFO_AUTH_PASSWORD: {{ .Values.jicofo.userAuth.secret | quote }}
   {{ end }}
-  JICOFO_COMPONENT_SECRET: {{ .Values.jicofo.componentSecret }}
+  JICOFO_COMPONENT_SECRET: {{ .Values.jicofo.componentSecret | quote }}

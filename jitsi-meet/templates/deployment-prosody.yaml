@@ -32,7 +32,7 @@ spec:
           env:
             {{ if .Values.jicofo.userAuth.enabled }}
             - name: JICOFO_USER
-              value: {{ .Values.jicofo.userAuth.name | quote }}
+              value: {{ .Values.jicofo.userAuth.name }}
             - name: JICOFO_AUTH_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -62,7 +62,7 @@ spec:
           env:
             {{ if .Values.jicofo.userAuth.enabled }}
             - name: JICOFO_USER
-              value: {{ .Values.jicofo.userAuth.name }}
+              value: "{{ .Values.jicofo.userAuth.name }}"
             - name: JICOFO_AUTH_PASSWORD
               valueFrom:
                 secretKeyRef:
