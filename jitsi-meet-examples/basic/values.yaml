@@ -2,8 +2,8 @@ jicofo:
   userAuth:
     enabled: true
     name: "focus"
-    secret: dG90bwo=
-  componentSecret: dG90bwo=
+    secret: dG90bw==
+  componentSecret: dG90bw==
   environment:
     - name: TZ
       value: Europe/Amsterdam
@@ -19,7 +19,7 @@ jvb:
   userAuth:
     enabled: true
     name: "jvb"
-    secret: dG90bwo=
+    secret: dG90bw==
   environment:
     - name: TZ
       value: Europe/Amsterdam
