@@ -1,0 +1,264 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Jitsi platform
+Parameters:
+  ClusterName:
+    Description: "Cluster name"
+    Type: String
+    Default: "dev"
+  Subnet1AvailabilityZone:
+    Description: "The availability zone for the subnet #1"
+    Type: "AWS::EC2::AvailabilityZone::Name"
+    Default: "us-east-1a"
+  Subnet2AvailabilityZone:
+    Description: "The availability zone for the subnet #2"
+    Type: "AWS::EC2::AvailabilityZone::Name"
+    Default: "us-east-1b"
+  Subnet3AvailabilityZone:
+    Description: "The availability zone for the subnet #3"
+    Type: "AWS::EC2::AvailabilityZone::Name"
+    Default: "us-east-1c"
+Resources:
+  Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - eks.amazonaws.com
+          Action:
+            - sts:AssumeRole
+      Policies:
+        - PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+            - Effect: Allow
+              Resource: '*'
+              Action:
+                - autoscaling:DescribeAutoScalingGroups
+                - autoscaling:DescribeLaunchConfigurations
+                - autoscaling:DescribeTags
+                - ec2:DescribeInstances
+                - ec2:DescribeRegions
+                - ec2:DescribeAccountAttributes
+                - ec2:DescribeInternetGateways
+                - ec2:DescribeRouteTables
+                - ec2:DescribeSecurityGroups
+                - ec2:DescribeSubnets
+                - ec2:DescribeVolumes
+                - ec2:CreateSecurityGroup
+                - ec2:CreateTags
+                - ec2:CreateVolume
+                - ec2:ModifyInstanceAttribute
+                - ec2:ModifyVolume
+                - ec2:AttachVolume
+                - ec2:AuthorizeSecurityGroupIngress
+                - ec2:CreateRoute
+                - ec2:DeleteRoute
+                - ec2:DeleteSecurityGroup
+                - ec2:DeleteVolume
+                - ec2:DetachVolume
+                - ec2:RevokeSecurityGroupIngress
+                - ec2:DescribeVpcs
+                - elasticloadbalancing:AddTags
+                - elasticloadbalancing:AttachLoadBalancerToSubnets
+                - elasticloadbalancing:ApplySecurityGroupsToLoadBalancer
+                - elasticloadbalancing:CreateLoadBalancer
+                - elasticloadbalancing:CreateLoadBalancerPolicy
+                - elasticloadbalancing:CreateLoadBalancerListeners
+                - elasticloadbalancing:ConfigureHealthCheck
+                - elasticloadbalancing:DeleteLoadBalancer
+                - elasticloadbalancing:DeleteLoadBalancerListeners
+                - elasticloadbalancing:DescribeLoadBalancers
+                - elasticloadbalancing:DescribeLoadBalancerAttributes
+                - elasticloadbalancing:DetachLoadBalancerFromSubnets
+                - elasticloadbalancing:DeregisterInstancesFromLoadBalancer
+                - elasticloadbalancing:ModifyLoadBalancerAttributes
+                - elasticloadbalancing:RegisterInstancesWithLoadBalancer
+                - elasticloadbalancing:SetLoadBalancerPoliciesForBackendServer
+                - elasticloadbalancing:AddTags
+                - elasticloadbalancing:CreateListener
+                - elasticloadbalancing:CreateTargetGroup
+                - elasticloadbalancing:DeleteListener
+                - elasticloadbalancing:DeleteTargetGroup
+                - elasticloadbalancing:DescribeListeners
+                - elasticloadbalancing:DescribeLoadBalancerPolicies
+                - elasticloadbalancing:DescribeTargetGroups
+                - elasticloadbalancing:DescribeTargetHealth
+                - elasticloadbalancing:ModifyListener
+                - elasticloadbalancing:ModifyTargetGroup
+                - elasticloadbalancing:RegisterTargets
+                - elasticloadbalancing:DeregisterTargets
+                - elasticloadbalancing:SetLoadBalancerPoliciesOfListener
+                - iam:CreateServiceLinkedRole
+                - kms:DescribeKey
+          PolicyName: 'eks-master'
+      ManagedPolicyArns:
+        - !Sub 'arn:${AWS::Partition}:iam::aws:policy/AmazonEKSClusterPolicy'
+        - !Sub 'arn:${AWS::Partition}:iam::aws:policy/AmazonEKSServicePolicy'
+
+  NodeInstanceRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - eks.amazonaws.com
+            Action:
+              - "sts:AssumeRole"
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - "sts:AssumeRole"
+      ManagedPolicyArns:
+        - !Sub "arn:${AWS::Partition}:iam::aws:policy/AmazonEKSWorkerNodePolicy"
+        - !Sub "arn:${AWS::Partition}:iam::aws:policy/AmazonEKS_CNI_Policy"
+        - !Sub "arn:${AWS::Partition}:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+        - !Sub 'arn:${AWS::Partition}:iam::aws:policy/AmazonElasticFileSystemReadOnlyAccess'
+      Policies:
+        - PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+            - Effect: Allow
+              Action:
+                - ec2:DescribeInstances
+                - ec2:DescribeRegions
+                - ecr:GetAuthorizationToken
+                - ecr:BatchCheckLayerAvailability
+                - ecr:GetDownloadUrlForLayer
+                - ecr:GetRepositoryPolicy
+                - ecr:DescribeRepositories
+                - ecr:ListImages
+                - ecr:BatchGetImage
+              Resource: '*'
+          PolicyName: 'eks-node'
+      Path: /
+
+  Vpc:
+    Type: "AWS::EC2::VPC"
+    Properties:
+      CidrBlock: "10.0.0.0/24"
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+
+  PublicRouteTable:
+    Type: "AWS::EC2::RouteTable"
+    Properties:
+      VpcId: !Ref Vpc
+
+  Subnet1:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      CidrBlock: "10.0.0.0/26"
+      VpcId: !Ref Vpc
+      AvailabilityZone: !Ref Subnet1AvailabilityZone
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: !Join
+                  - "/"
+                  - - "kubernetes.io/cluster"
+                    - !Ref ClusterName
+          Value: shared
+  Subnet1Assoc:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref Subnet1
+
+  Subnet2:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      CidrBlock: "10.0.0.192/26"
+      VpcId: !Ref Vpc
+      AvailabilityZone: !Ref Subnet2AvailabilityZone
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: !Join
+                  - "/"
+                  - - "kubernetes.io/cluster"
+                    - !Ref ClusterName
+          Value: shared
+  Subnet2Assoc:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref Subnet2
+
+  # Elastic IP
+  Eip:
+    Type: AWS::EC2::EIP
+    DependsOn: VpcIgPairing
+    Properties:
+      Domain: vpc
+  # Gateways
+  InternetGateway:
+    Type: "AWS::EC2::InternetGateway"
+  InternetRoute:
+    Type: "AWS::EC2::Route"
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: "0.0.0.0/0"
+      GatewayId: !Ref InternetGateway
+  VpcIgPairing:
+    Type: "AWS::EC2::VPCGatewayAttachment"
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref Vpc
+
+  SecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: "Cluster SG"
+      GroupName: cluster-sg
+      VpcId: !Ref Vpc
+      SecurityGroupIngress:
+        - FromPort: 0
+          ToPort: 65535
+          IpProtocol: "-1"
+          CidrIp: "0.0.0.0/0"
+      SecurityGroupEgress:
+        - IpProtocol: "-1"
+          FromPort: 0
+          ToPort: 65535
+          CidrIp: "0.0.0.0/0"
+
+  Cluster:
+    Type: "AWS::EKS::Cluster"
+    Properties:
+      RoleArn: !GetAtt Role.Arn
+      Name: !Ref ClusterName
+      ResourcesVpcConfig:
+        SubnetIds:
+          - !Ref Subnet1
+          - !Ref Subnet2
+        SecurityGroupIds:
+          - !Ref SecurityGroup
+
+  BaseNodeGroup:
+    Type: "AWS::EKS::Nodegroup"
+    DependsOn: Cluster
+    Properties:
+      ClusterName: !Ref ClusterName
+      NodegroupName: base
+      AmiType: AL2_x86_64
+      RemoteAccess:
+        Ec2SshKey: "eks-dev-nodes"
+        SourceSecurityGroups:
+          - !Ref SecurityGroup
+      ScalingConfig:
+        MinSize: 2
+        DesiredSize: 3
+        MaxSize: 5
+      InstanceTypes:
+        - t2.small
+      NodeRole: !GetAtt NodeInstanceRole.Arn
+      Subnets:
+        - !Ref Subnet1
+        - !Ref Subnet2

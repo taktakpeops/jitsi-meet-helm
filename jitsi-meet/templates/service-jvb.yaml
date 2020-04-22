@@ -10,7 +10,7 @@ metadata:
   {{- end }}
 spec:
   type: NodePort
-  externalTrafficPolicy: Cluster
+  externalTrafficPolicy: Local
   ports:
   - port: 30300
     protocol: UDP

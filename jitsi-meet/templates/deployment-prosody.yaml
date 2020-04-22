@@ -24,40 +24,6 @@ spec:
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
-        - name: {{ include "jitsi-meet.name-jicofo" . }}
-          image: "{{ .Values.jicofo.image.repository }}:{{ .Values.jicofo.image.tag }}"
-          imagePullPolicy: {{ .Values.jicofo.image.pullPolicy }}
-          securityContext:
-            {{- toYaml .Values.securityContext | nindent 12 }}
-          ports:
-            - name: http
-              containerPort: 80
-              protocol: TCP
-          env:
-            {{ if .Values.jicofo.userAuth.enabled }}
-            - name: JICOFO_AUTH_USER
-              value: {{ .Values.jicofo.userAuth.name }}
-            - name: JICOFO_AUTH_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "jitsi-meet.name-jicofo-config" . }}
-                  key: JICOFO_AUTH_PASSWORD
-            {{ end }}
-            {{ if .Values.jicofo.componentSecret }}
-            - name: JICOFO_COMPONENT_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "jitsi-meet.name-jicofo-config" . }}
-                  key: JICOFO_COMPONENT_SECRET
-            {{ end }}
-            - name: XMPP_SERVER
-              value: localhost
-            {{- range .Values.jicofo.environment }}
-            - name: {{ .name | quote }}
-              value: {{ .value | quote }}
-            {{- end }}
-          resources:
-            {{- toYaml .Values.jicofo.resources | nindent 12 }}
         - name: {{ include "jitsi-meet.name-prosody" . }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
@@ -108,6 +74,40 @@ spec:
               name: xmpp
           resources:
             {{- toYaml .Values.prosody.resources | nindent 12 }}
+        - name: {{ include "jitsi-meet.name-jicofo" . }}
+          image: "{{ .Values.jicofo.image.repository }}:{{ .Values.jicofo.image.tag }}"
+          imagePullPolicy: {{ .Values.jicofo.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+          env:
+            {{ if .Values.jicofo.userAuth.enabled }}
+            - name: JICOFO_AUTH_USER
+              value: {{ .Values.jicofo.userAuth.name }}
+            - name: JICOFO_AUTH_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "jitsi-meet.name-jicofo-config" . }}
+                  key: JICOFO_AUTH_PASSWORD
+            {{ end }}
+            {{ if .Values.jicofo.componentSecret }}
+            - name: JICOFO_COMPONENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "jitsi-meet.name-jicofo-config" . }}
+                  key: JICOFO_COMPONENT_SECRET
+            {{ end }}
+            - name: XMPP_SERVER
+              value: localhost
+            {{- range .Values.jicofo.environment }}
+            - name: {{ .name | quote }}
+              value: {{ .value | quote }}
+            {{- end }}
+          resources:
+            {{- toYaml .Values.jicofo.resources | nindent 12 }}
       {{- with .Values.prosody.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
