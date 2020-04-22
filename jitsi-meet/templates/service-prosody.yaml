@@ -19,6 +19,10 @@ spec:
       targetPort: web
       protocol: TCP
       name: web
+    - port: 5347
+      targetPort: xmpp
+      protocol: TCP
+      name: xmpp
   selector:
     app.kubernetes.io/name: {{ include "jitsi-meet.name-prosody" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}

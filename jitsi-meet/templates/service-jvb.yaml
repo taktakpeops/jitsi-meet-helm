@@ -4,13 +4,17 @@ metadata:
   name: {{ include "jitsi-meet.name-jvb" . }}
   labels:
 {{ include "jitsi-meet.labels" . | indent 4 }}
+  {{- with .Values.jvb.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   type: NodePort
   externalTrafficPolicy: Cluster
   ports:
   - port: 30300
     protocol: UDP
-    targetPort: 30300
+    targetPort: video
     nodePort: 30300
   selector:
     app.kubernetes.io/name: {{ include "jitsi-meet.name-jvb" . }}

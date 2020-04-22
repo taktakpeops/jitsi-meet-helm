@@ -32,7 +32,7 @@ spec:
             - name: XMPP_SERVER
               value: {{ include "jitsi-meet.name-prosody" . }}
             {{- if .Values.jicofo.userAuth.enabled }}
-            - name: JICOFO_USER
+            - name: JICOFO_AUTH_USER
               value: {{ .Values.jicofo.userAuth.name }}
             - name: JICOFO_AUTH_PASSWORD
               valueFrom:
@@ -41,7 +41,7 @@ spec:
                   key: JICOFO_AUTH_PASSWORD
             {{- end }}
             {{- if .Values.jvb.userAuth.enabled }}
-            - name: JVB_USER
+            - name: JVB_AUTH_USER
               value: {{ .Values.jvb.userAuth.name }}
             - name: JVB_AUTH_PASSWORD
               valueFrom:

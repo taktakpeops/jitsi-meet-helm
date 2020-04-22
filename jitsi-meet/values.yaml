@@ -87,7 +87,7 @@ jicofo: # jicofo is used as a sidecar container for every prosody instance
 
 jvb:
   image:
-    repository: jitsi/prosody
+    repository: jitsi/jvb
     tag: latest
     pullPolicy: Always
   environment: []
@@ -97,8 +97,6 @@ jvb:
     annotations: []
     type: NodePort
     externalTrafficPolicy: Cluster
-    udpPort: 10000
-    tcpPort: 4443
   ingress:
     enabled: false
   resources: {}
