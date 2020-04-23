@@ -55,7 +55,7 @@ prosody:
       clientIPConfig:
         timeoutSeconds: 10800 # 3 hours
   hpa:
-    enabled: true
+    enabled: false
     minReplicas: 1
     maxReplicas: 3
     metrics:
@@ -91,6 +91,7 @@ jvb:
     tag: latest
     pullPolicy: Always
   environment: []
+  replicaCount: 1
   securityContext:
     fsGroup: 412
   service:
@@ -109,9 +110,6 @@ jvb:
     secret: ""
 
 ingressControllerNamespace: ""
-
-nameOverride: ""
-fullnameOverride: ""
 
 serviceAccount:
   # Specifies whether a service account should be created

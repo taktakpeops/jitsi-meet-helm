@@ -32,9 +32,15 @@ jvb:
     - name: XMPP_MUC_DOMAIN
       value: muc.meet.jitsi
     - name: XMPP_INTERNAL_MUC_DOMAIN
+      value: internal-muc.meet.jitsi
+    - name: JVB_STUN_SERVERS
       value: stun.l.google.com:19302,stun1.l.google.com:19302,stun2.l.google.com:19302
     - name: JVB_TCP_HARVESTER_DISABLED
       value: "true"
+    - name: DOCKER_HOST_ADDRESS
+      valueFrom:
+        fieldRef:
+          fieldPath: status.hostIP
 
 prosody:
   environment:
@@ -56,11 +62,21 @@ prosody:
       value: muc.meet.jitsi
 
 web:
+  ingress:
+    enabled: true
+    annotations:
+      kubernetes.io/ingress.class: "nginx"
+      nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+      cert-manager.io/cluster-issuer: "letsencrypt"
+    hosts:
+      - host: jitsi.meat-project.tk
+        paths:
+          - "/"
+    tls:
+      - hosts:
+          - jitsi.meat-project.tk
+        secretName: jitsi-web
   environment:
-    - name: XMPP_SERVER
-      value: localhost
-    - name: JICOFO_AUTH_USER
-      value: focus
     - name: XMPP_DOMAIN
       value: meet.jitsi
     - name: XMPP_AUTH_DOMAIN
