@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "jitsi-meet.name-jvb-config" . }}-cm
+  labels:
+{{ include "jitsi-meet.labels" . | indent 4 }}
+data:
+  {{- range $path, $d := .Files.Glob "configs/jvb/*.properties" }}
+  {{- $path }}: |-
+  {{- $d | toString | nindent 4 }}
+  {{- end }}

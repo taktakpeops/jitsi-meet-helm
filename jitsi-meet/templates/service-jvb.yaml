@@ -11,6 +11,10 @@ metadata:
 spec:
   type: NodePort
   externalTrafficPolicy: Local
+  sessionAffinity: {{ .Values.jvb.service.sessionAffinity }}
+  {{ if .Values.jvb.service.sessionAffinityConfig }}
+  {{- toYaml .Values.jvb.service.sessionAffinityConfig }}
+  {{ end }}
   ports:
   - port: 30300
     protocol: UDP

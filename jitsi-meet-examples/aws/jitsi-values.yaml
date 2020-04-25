@@ -16,11 +16,15 @@ jicofo:
     - name: XMPP_INTERNAL_MUC_DOMAIN
       value: internal-muc.meet.jitsi
 
+# need JVM optimisation
 jvb:
   userAuth:
     enabled: true
     name: "jvb"
     secret: dG90bw==
+  ingress:
+    enabled: false
+  replicaCount: 2
   environment:
     - name: TZ
       value: Europe/Amsterdam
@@ -77,6 +81,20 @@ web:
       - hosts:
           - jitsi.meat-project.tk
         secretName: jitsi-web
+  replicaCount: 2
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 3
+    metrics:
+      - type: Resource
+        resource:
+          name: memory
+          targetAverageUtilization: 70
+      - type: Resource
+        resource:
+          name: cpu
+          targetAverageUtilization: 70
   environment:
     - name: XMPP_DOMAIN
       value: meet.jitsi
@@ -90,3 +108,10 @@ web:
       value: America/Los_Angeles
     - name: JVB_TCP_HARVESTER_DISABLED
       value: "true"
+  resources:
+    limits:
+      memory: 128Mi
+      cpu: 50m
+    requests:
+      memory: 64Mi
+      cpu: 15m

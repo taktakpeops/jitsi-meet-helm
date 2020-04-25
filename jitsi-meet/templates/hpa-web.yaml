@@ -13,16 +13,9 @@ spec:
   maxReplicas: {{ .Values.web.hpa.maxReplicas }}
   minReplicas: {{ .Values.web.hpa.minReplicas }}
   metrics:
-{{- with .Values.web.hpa.targetCPUUtilizationPercentage }}
-    - type: Resource
+    {{- range .Values.web.hpa.metrics }}
+    - type: {{ .type }}
       resource:
-        name: cpu
-        targetAverageUtilization: {{ . }}
-{{- end }}
-{{- with .Values.web.hpa.targetMemoryUtilizationPercentage }}
-    - type: Resource
-      resource:
-        name: memory
-        targetAverageUtilization: {{ . }}
-{{- end }}
+        {{- toYaml .resource | nindent 8 }}
+    {{- end }}
 {{- end }}

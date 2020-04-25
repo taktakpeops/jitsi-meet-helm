@@ -6,6 +6,7 @@ metadata:
   labels:
 {{ include "jitsi-meet.labels" . | indent 4 }}
 spec:
+  serviceName: {{ include "jitsi-meet.name-jvb" . }}
   replicas: {{ .Values.jvb.replicaCount }}
   selector:
     matchLabels:
@@ -68,12 +69,23 @@ spec:
           volumeMounts:
             - name: dockersock
               mountPath: "/var/run/docker.sock"
+            - name: config
+              mountPath: "/var/app"
+          lifecycle:
+            podStart:
+              exec:
+                - /bin/bash
+                - -c
+                - cp /var/app/sip-communicator.properties /config/sip-communicator.properties
           resources:
             {{- toYaml .Values.jvb.resources | nindent 12 }}
       volumes:
         - name: dockersock
           hostPath:
             path: /var/run/docker.sock
+        - name: config
+          configMap:
+            name: {{ template "jitsi-meet.name-jvb-config" . }}-cm
       {{- with .Values.jvb.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

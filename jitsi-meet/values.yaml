@@ -98,6 +98,10 @@ jvb:
     annotations: []
     type: NodePort
     externalTrafficPolicy: Cluster
+    sessionAffinity: None
+    sessionAffinityConfig:
+      clientIP:
+        timeoutSeconds: 10800
   ingress:
     enabled: false
   resources: {}
