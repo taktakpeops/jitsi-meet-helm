@@ -8,15 +8,11 @@ Parameters:
   Subnet1AvailabilityZone:
     Description: "The availability zone for the subnet #1"
     Type: "AWS::EC2::AvailabilityZone::Name"
-    Default: "us-east-1a"
+    Default: "eu-west-1b"
   Subnet2AvailabilityZone:
     Description: "The availability zone for the subnet #2"
     Type: "AWS::EC2::AvailabilityZone::Name"
-    Default: "us-east-1b"
-  Subnet3AvailabilityZone:
-    Description: "The availability zone for the subnet #3"
-    Type: "AWS::EC2::AvailabilityZone::Name"
-    Default: "us-east-1c"
+    Default: "eu-west-1c"
 Resources:
   Role:
     Type: AWS::IAM::Role
@@ -229,6 +225,104 @@ Resources:
           ToPort: 65535
           CidrIp: "0.0.0.0/0"
 
+  # SecurityGroupNodeGroups:
+  #   Type: "AWS::EC2::SecurityGroup"
+  #   Properties:
+  #     GroupDescription: "Cluster SG Node Group"
+  #     GroupName: node-group-sg
+  #     VpcId: !Ref Vpc
+  #     SecurityGroupIngress:
+  #       - FromPort: 22
+  #         ToPort: 22
+  #         IpProtocol: "tcp"
+  #         CidrIp: "0.0.0.0/0"
+  #       - FromPort: 443
+  #         ToPort: 443
+  #         IpProtocol: "tcp"
+  #         CidrIp: "0.0.0.0/0"
+  #       - FromPort: 30300
+  #         ToPort: 30300
+  #         IpProtocol: "udp"
+  #         CidrIp: "0.0.0.0/0"
+  #       - IpProtocol: -1
+  #         FromPort: 1025
+  #         ToPort: 65535
+  #         CidrIp: "0.0.0.0/0"
+  #     SecurityGroupEgress:
+  #       - IpProtocol: "-1"
+  #         FromPort: 0
+  #         ToPort: 65535
+  #         CidrIp: "0.0.0.0/0"
+
+  # SecurityGroupIngressController:
+  #   Type: "AWS::EC2::SecurityGroup"
+  #   Properties:
+  #     GroupDescription: "Cluster SG ingress controller"
+  #     GroupName: ingress-ctrl-sg
+  #     VpcId: !Ref Vpc
+  #     SecurityGroupIngress:
+  #       - FromPort: 443
+  #         ToPort: 443
+  #         IpProtocol: "tcp"
+  #         CidrIp: "173.245.48.0/20"
+  #       - FromPort: 443
+  #         ToPort: 443
+  #         IpProtocol: "tcp"
+  #         CidrIp: "103.21.244.0/22"
+  #       - FromPort: 443
+  #         ToPort: 443
+  #         IpProtocol: "tcp"
+  #         CidrIp: "103.22.200.0/22"
+  #       - FromPort: 443
+  #         ToPort: 443
+  #         IpProtocol: "tcp"
+  #         CidrIp: "103.31.4.0/22"
+  #       - FromPort: 443
+  #         ToPort: 443
+  #         IpProtocol: "tcp"
+  #         CidrIp: "141.101.64.0/18"
+  #       - FromPort: 443
+  #         ToPort: 443
+  #         IpProtocol: "tcp"
+  #         CidrIp: "108.162.192.0/18"
+  #       - FromPort: 443
+  #         ToPort: 443
+  #         IpProtocol: "tcp"
+  #         CidrIp: "190.93.240.0/20"
+  #       - FromPort: 443
+  #         ToPort: 443
+  #         IpProtocol: "tcp"
+  #         CidrIp: "188.114.96.0/20"
+  #       - FromPort: 443
+  #         ToPort: 443
+  #         IpProtocol: "tcp"
+  #         CidrIp: "197.234.240.0/22"
+  #       - FromPort: 443
+  #         ToPort: 443
+  #         IpProtocol: "tcp"
+  #         CidrIp: "198.41.128.0/17"
+  #       - FromPort: 443
+  #         ToPort: 443
+  #         IpProtocol: "tcp"
+  #         CidrIp: "162.158.0.0/15"
+  #       - FromPort: 443
+  #         ToPort: 443
+  #         IpProtocol: "tcp"
+  #         CidrIp: "104.16.0.0/12"
+  #       - FromPort: 443
+  #         ToPort: 443
+  #         IpProtocol: "tcp"
+  #         CidrIp: "172.64.0.0/13"
+  #       - FromPort: 443
+  #         ToPort: 443
+  #         IpProtocol: "tcp"
+  #         CidrIp: "131.0.72.0/22"
+  #     SecurityGroupEgress:
+  #       - IpProtocol: "tcp"
+  #         FromPort: 1025
+  #         ToPort: 65535
+  #         CidrIp: "0.0.0.0/0"
+
   Cluster:
     Type: "AWS::EKS::Cluster"
     Properties:
@@ -241,12 +335,12 @@ Resources:
         SecurityGroupIds:
           - !Ref SecurityGroup
 
-  BaseNodeGroup:
+  DevNodeGroup:
     Type: "AWS::EKS::Nodegroup"
     DependsOn: Cluster
     Properties:
       ClusterName: !Ref ClusterName
-      NodegroupName: base
+      NodegroupName: group-dev
       AmiType: AL2_x86_64
       RemoteAccess:
         Ec2SshKey: "eks-dev-nodes"
@@ -257,8 +351,10 @@ Resources:
         DesiredSize: 3
         MaxSize: 5
       InstanceTypes:
-        - t2.small
+        - m5.large
       NodeRole: !GetAtt NodeInstanceRole.Arn
       Subnets:
         - !Ref Subnet1
         - !Ref Subnet2
+
+

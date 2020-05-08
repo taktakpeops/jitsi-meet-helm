@@ -1,20 +1,32 @@
+webHost: jitsi.meat-project.tk
+
+common:
+  environment:
+    - name: XMPP_DOMAIN
+      value: jitsi.meet
+    - name: XMPP_AUTH_DOMAIN
+      value: auth.jitsi.meet
+    - name: XMPP_INTERNAL_MUC_DOMAIN
+      value: internal-muc.jitsi.meet
+    - name: XMPP_MUC_DOMAIN
+      value: muc.jitsi.meet
+    - name: XMPP_GUEST_DOMAIN
+      value: guest.jitsi.meet
+    - name: JVB_BREWERY_MUC
+      value: jvbbrewery
+    - name: TZ
+      value: Europe/Amsterdam
+
 jicofo:
   userAuth:
     enabled: true
     name: "focus"
     secret: dG90bw==
   componentSecret: dG90bw==
-  environment:
-    - name: TZ
-      value: Europe/Amsterdam
-    - name: JVB_BREWERY_MUC
-      value: jvbbrewery
-    - name: XMPP_DOMAIN
-      value: meet.jitsi
-    - name: XMPP_AUTH_DOMAIN
-      value: auth.meet.jitsi
-    - name: XMPP_INTERNAL_MUC_DOMAIN
-      value: internal-muc.meet.jitsi
+  replicaCount: 1
+  environmnet:
+    - name: JICOFO_AUTH_DOMAIN
+      value: auth.jitsi.meet
 
 # need JVM optimisation
 jvb:
@@ -25,19 +37,9 @@ jvb:
   ingress:
     enabled: false
   replicaCount: 2
+  service:
+    sessionAffinity: ClientIP
   environment:
-    - name: TZ
-      value: Europe/Amsterdam
-    - name: JVB_BREWERY_MUC
-      value: jvbbrewery
-    - name: XMPP_DOMAIN
-      value: meet.jitsi
-    - name: XMPP_AUTH_DOMAIN
-      value: auth.meet.jitsi
-    - name: XMPP_MUC_DOMAIN
-      value: muc.meet.jitsi
-    - name: XMPP_INTERNAL_MUC_DOMAIN
-      value: internal-muc.meet.jitsi
     - name: JVB_STUN_SERVERS
       value: stun.l.google.com:19302,stun1.l.google.com:19302,stun2.l.google.com:19302
     - name: JVB_TCP_HARVESTER_DISABLED
@@ -46,46 +48,59 @@ jvb:
       valueFrom:
         fieldRef:
           fieldPath: status.hostIP
+    - name: JVB_OPTS
+      value: "--apis=xmpp,rest"
+    - name: ENABLE_STATISTICS
+      value: "true"
+  # resources:
+  #   limits:
+  #     memory: 512Mi
+  #     cpu: 100m
+  #   requests:
+  #     memory: 256Mi
+  #     cpu: 25m
 
 prosody:
+  auth:
+    enabled: false
+    guest: 0
+    # type: jwt
+  recorder: false
+  replicaCount: 1
   environment:
     - name: JVB_TCP_HARVESTER_DISABLED
       value: "true"
-    - name: TZ
-      value: Europe/Amsterdam
-    - name: JVB_BREWERY_MUC
-      value: jvbbrewery
-    - name: XMPP_DOMAIN
-      value: meet.jitsi
-    - name: XMPP_AUTH_DOMAIN
-      value: auth.meet.jitsi
-    - name: XMPP_INTERNAL_MUC_DOMAIN
-      value: internal-muc.meet.jitsi
-    - name: JVB_TCP_HARVESTER_DISABLED
-      value: "true"
-    - name: XMPP_MUC_DOMAIN
-      value: muc.meet.jitsi
+    - name: ENABLE_GUESTS
+      value: "1"
 
 web:
   ingress:
     enabled: true
     annotations:
-      kubernetes.io/ingress.class: "nginx"
-      nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
       cert-manager.io/cluster-issuer: "letsencrypt"
+      cert-manager.io/acme-challenge-type: http01
+      ingress.kubernetes.io/auth: "oauth2_proxy"
+      ingress.kubernetes.io/oauth-uri-prefix: "/oauth2"
+      ingress.kubernetes.io/forwarded-for: "enabled"
+      ingress.kubernetes.io/load-balance: "uri"
+      ingress.kubernetes.io/ssl-redirect: "ON"
+      ingress.kubernetes.io/ssl-certificate: jitsi/meet-web
+      ingress.kubernetes.io/timeout-tunnel: 3h
+      kubernetes.io/ingress.class: "haproxy"
     hosts:
       - host: jitsi.meat-project.tk
+        oauth: true
         paths:
-          - "/"
+          - /
     tls:
       - hosts:
           - jitsi.meat-project.tk
-        secretName: jitsi-web
+        secretName: meet-web
   replicaCount: 2
   hpa:
     enabled: true
     minReplicas: 2
-    maxReplicas: 3
+    maxReplicas: 5
     metrics:
       - type: Resource
         resource:
@@ -95,19 +110,33 @@ web:
         resource:
           name: cpu
           targetAverageUtilization: 70
+  jwtsidecar:
+    extraArgs:
+      provider: oidc
+      email-domain: *
+      provider-display-name: aws_cognito
+      client-id: yourclientid
+      client-secret: yourclientsecret
+      insecure-oidc-allow-unverified-email: false
+      oidc-issuer-url: issuerurl
+      oidc-jwks-url: jwksurl
+      scope: "openid profile aws.cognito.signin.user.admin"
+      cookie-secure: true
+      cookie-domain: mydomain.com
+      cookie-secret: randomcookiesecret
+      cookie-samesite: lax
+      provider: oidc
+      set-xauthrequest: true
+      proxy-prefix: "/oauth2"
   environment:
-    - name: XMPP_DOMAIN
-      value: meet.jitsi
-    - name: XMPP_AUTH_DOMAIN
-      value: auth.meet.jitsi
-    - name: XMPP_INTERNAL_MUC_DOMAIN
-      value: internal-muc.meet.jitsi
-    - name: XMPP_MUC_DOMAIN
-      value: muc.meet.jitsi
-    - name: TZ
-      value: America/Los_Angeles
     - name: JVB_TCP_HARVESTER_DISABLED
       value: "true"
+    - name: ENABLE_GUESTS
+      value: "1"
+    - name: ENABLE_LETSENCRYPT
+      value: "0"
+    - name: DISABLE_HTTPS
+      value: "1"
   resources:
     limits:
       memory: 128Mi

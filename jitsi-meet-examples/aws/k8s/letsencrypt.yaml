@@ -4,11 +4,11 @@ metadata:
   name: letsencrypt
 spec:
   acme:
-    email: youremail@address.com
+    email: your@email.address
     server: https://acme-v02.api.letsencrypt.org/directory
     privateKeySecretRef:
       name: letsencrypt-secret
     solvers:
     - http01:
         ingress:
-          class: nginx
+          class: haproxy

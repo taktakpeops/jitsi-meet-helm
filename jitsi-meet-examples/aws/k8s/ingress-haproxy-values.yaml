@@ -1,16 +1,11 @@
 controller:
-  resources:
-   limits:
-     cpu: 150m
-     memory: 128Mi
-   requests:
-     cpu: 100m
-     memory: 64Mi
-  proxySetHeaders:
-    use-proxy-protocol: 'true'
-    proxy-real-ip-cidr: 'true'
+  replicaCount: 1
   autoscaling:
     enabled: true
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 50
   service:
     externalTrafficPolicy: Local
     annotations:
@@ -18,3 +13,11 @@ controller:
       service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout: '60'
       service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: 'true'
       service.beta.kubernetes.io/aws-load-balancer-type: nlb
+  resources:
+    limits:
+      memory: 64Mi
+      cpu: 50m
+    requests:
+      memory: 32Mi
+      cpu: 15m
+
