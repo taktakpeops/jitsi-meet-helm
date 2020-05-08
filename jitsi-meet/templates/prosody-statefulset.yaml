@@ -1,11 +1,12 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: {{ include "jitsi-meet.name-prosody" . }}
   labels:
 {{ include "jitsi-meet.labels" . | indent 4 }}
 spec:
-  replicas: {{ .Values.jicofo.replicaCount }}
+  serviceName: {{ include "jitsi-meet.name-prosody" . }}
+  replicas: {{ .Values.prosody.replicaCount }}
   selector:
     matchLabels:
       app.kubernetes.io/name: {{ include "jitsi-meet.name-prosody" . }}
@@ -55,7 +56,19 @@ spec:
                   name: {{ template "jitsi-meet.name-jvb-config" . }}
                   key: JVB_AUTH_PASSWORD
             {{- end }}
+            {{- if .Values.prosody.auth.enabled }}
+            - name: ENABLE_AUTH
+              value: "1"
+            - name: ENABLE_GUESTS
+              value: {{ .Values.prosody.auth.guest | quote }}
+            - name: AUTH_TYPE
+              value: {{ .Values.prosody.auth.type | quote }}
+            {{- end }}
             {{- range .Values.prosody.environment }}
+            - name: {{ .name | quote }}
+              value: {{ .value | quote }}
+            {{- end }}
+            {{- range .Values.common.environment }}
             - name: {{ .name | quote }}
               value: {{ .value | quote }}
             {{- end }}
@@ -63,7 +76,7 @@ spec:
             - containerPort: 5222
               protocol: TCP
               name: c2s1
-            - containerPort: 5322
+            - containerPort: 5269
               protocol: TCP
               name: c2s2
             - containerPort: 5280
@@ -72,8 +85,22 @@ spec:
             - containerPort: 5347
               protocol: TCP
               name: xmpp
+          # lifecycle:
+          #   postStart:
+          #     exec:
+          #       command:
+          #         - /bin/bash
+          #         - -c
+          #         - cat /var/app/prosody.cfg.lua | base64 -d > /defaults/prosody.cfg.lua
+          #         - cat /var/app/jitsi-meet.cfg.lua | base64 -d > /defaults/conf.d/jitsi-meet.cfg.lua
+          #         # {{ if .Values.prosody.auth.enabled }}
+          #         # - prosodyctl --config /config/prosody.cfg.lua register me $XMPP_DOMAIN $JVB_AUTH_PASSWORD;
+          #         # {{ end }}
           resources:
             {{- toYaml .Values.prosody.resources | nindent 12 }}
+          volumeMounts:
+            - name: config-prosody
+              mountPath: "/var/app"
         - name: {{ include "jitsi-meet.name-jicofo" . }}
           image: "{{ .Values.jicofo.image.repository }}:{{ .Values.jicofo.image.tag }}"
           imagePullPolicy: {{ .Values.jicofo.image.pullPolicy }}
@@ -101,13 +128,77 @@ spec:
                   key: JICOFO_COMPONENT_SECRET
             {{ end }}
             - name: XMPP_SERVER
-              value: localhost
+              value: "localhost"
+            {{- if .Values.prosody.auth.enabled }}
+            - name: ENABLE_AUTH
+              value: "1"
+            {{- end }}
             {{- range .Values.jicofo.environment }}
+            - name: {{ .name | quote }}
+              value: {{ .value | quote }}
+            {{- end }}
+            {{- range .Values.common.environment }}
             - name: {{ .name | quote }}
               value: {{ .value | quote }}
             {{- end }}
           resources:
             {{- toYaml .Values.jicofo.resources | nindent 12 }}
+          # lifecycle:
+          #   postStart:
+          #     exec:
+          #       command:
+          #         - /bin/bash
+          #         - -c
+          #         - cp /var/app/sip-communicator.properties /defaults/sip-communicator.properties
+          volumeMounts:
+            - name: config-jicofo
+              mountPath: "/var/app"
+        {{ if .Values.prosody.recorder }}
+        - name: {{ include "jitsi-meet.name-jibri" . }}
+          image: "{{ .Values.jibri.image.repository }}:{{ .Values.jibri.image.tag }}"
+          imagePullPolicy: {{ .Values.jibri.image.pullPolicy }}
+          securityContext:
+            # required to record sound
+            privileged: true
+            capabilities:
+              add:
+                - SYS_RESOURCE
+                - NET_BIND_SERVICE
+            {{- with .Values.jibri.podSecurityContext }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          env:
+            - name: XMPP_SERVER
+              value: localhost
+            {{- range .Values.jibri.environment }}
+            - name: {{ .name | quote }}
+              value: {{ .value | quote }}
+            {{- end }}
+            {{- range .Values.common.environment }}
+            - name: {{ .name | quote }}
+              value: {{ .value | quote }}
+            {{- end }}
+          volumeMounts:
+            - mountPath: /dev/shm
+              name: shm
+            - mountPath: /dev/snd
+              name: dev-snd
+        {{ end }}
+      volumes:
+        - name: config-jicofo
+          configMap:
+            name: {{ template "jitsi-meet.name-jicofo-config" . }}-cm
+        - name: config-prosody
+          configMap:
+            name: {{ template "jitsi-meet.name-prosody" . }}-config-cm
+        {{ if .Values.prosody.recorder }}
+        - name: shm
+          hostPath:
+            path: /dev/shm
+        - name: dev-snd
+          hostPath:
+            path: /dev/snd
+        {{ end }}
       {{- with .Values.prosody.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

@@ -1,0 +1,31 @@
+{{- $root := . }}
+{{- $name := include "jitsi-meet.name-jvb" $root }}
+{{- range $index, $nbr := until (.Values.prosody.replicaCount | int) }}
+{{- $port := printf "%s%s" "3030" (toString $nbr) }}
+{{- $target := printf "%s-%d" $name $nbr}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $target | quote }}
+  labels:
+{{ include "jitsi-meet.labels" $root | indent 4 }}
+  {{- with $root.Values.jvb.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: NodePort
+  externalTrafficPolicy: Local
+  sessionAffinity: {{ $root.Values.jvb.service.sessionAffinity }}
+  {{- if $root.Values.jvb.service.sessionAffinityConfig }}
+  {{- toYaml $root.Values.jvb.service.sessionAffinityConfig }}
+  {{- end }}
+  ports:
+  - port: {{ atoi $port }}
+    protocol: UDP
+    targetPort: video
+    nodePort: {{ atoi $port }}
+  selector:
+    app.kubernetes.io/name: {{ $target | quote }}
+    app.kubernetes.io/instance: {{ $root.Release.Name }}
+{{- end }}

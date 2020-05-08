@@ -5,6 +5,8 @@
 image:
   pullSecrets: []
 
+webHost: jitsi.meet.local
+
 web:
   image:
     repository: jitsi/web
@@ -14,6 +16,9 @@ web:
     - name: ENABLE_LETSENCRYPT
       value: false
   replicaCount: 1
+  jwtsidecar:
+    extraArgs: {}
+    resources: {}
   hpa:
     enabled: false
     minReplicas: 1
@@ -30,6 +35,7 @@ web:
     annotations: []
     hosts:
       - host: jitsi.meet.local
+        oauth: false
         paths: []
     tls: []
   resources: {}
@@ -37,14 +43,24 @@ web:
   tolerations: []
   affinity: {}
 
+jibri:
+  image:
+    repository: jitsi/jibri
+    tag: latest
+    pullPolicy: Always
+  environment: []
+  resources: {}
+
 prosody:
+  auth:
+    enabled: true
+    guest: 0
+    type: internal
   image:
     repository: jitsi/prosody
     tag: latest
     pullPolicy: Always
-  environment:
-    - name: ENABLE_GUEST
-      value: true
+  environment: []
   replicaCount: 1
   service:
     annotations: []
@@ -71,6 +87,7 @@ prosody:
   nodeSelector: {}
   tolerations: []
   affinity: {}
+  recorder: false
 
 jicofo: # jicofo is used as a sidecar container for every prosody instance
   image:
@@ -94,14 +111,16 @@ jvb:
   replicaCount: 1
   securityContext:
     fsGroup: 412
+  podSecurityContext:
+    capabilities:
+      add:
+        - SYS_RESOURCE
+        - NET_ADMIN
   service:
     annotations: []
     type: NodePort
     externalTrafficPolicy: Cluster
     sessionAffinity: None
-    sessionAffinityConfig:
-      clientIP:
-        timeoutSeconds: 10800
   ingress:
     enabled: false
   resources: {}

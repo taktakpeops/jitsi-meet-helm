@@ -5,7 +5,7 @@ metadata:
   labels:
 {{ include "jitsi-meet.labels" . | indent 4 }}
 data:
-  {{- range $path, $d := .Files.Glob "configs/jvb/*.properties" }}
-  {{- $path }}: |-
-  {{- $d | toString | nindent 4 }}
-  {{- end }}
+  sip-communicator.properties: |-
+    {{- .Files.Get "configs/jvb/sip-communicator.properties" | nindent 4 }}
+  logging.properties: |-
+    {{- .Files.Get "configs/jvb/logging.properties" | nindent 4 }}

@@ -7,11 +7,11 @@ metadata:
 spec:
   type: {{ .Values.prosody.service.type }}
   ports:
-    - port: {{ .Values.prosody.service.portC2S1 }}
+    - port: 5222
       targetPort: c2s1
       protocol: TCP
       name: c2s1
-    - port: {{ .Values.prosody.service.portC2S2 }}
+    - port: 5269
       targetPort: c2s2
       protocol: TCP
       name: c2s2
@@ -23,6 +23,7 @@ spec:
       targetPort: xmpp
       protocol: TCP
       name: xmpp
+  sessionAffinity: ClientIP
   selector:
     app.kubernetes.io/name: {{ include "jitsi-meet.name-prosody" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}

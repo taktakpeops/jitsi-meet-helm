@@ -7,48 +7,6 @@ Expand the name of the chart.
 {{- end -}}
 
 {{/*
-Create the web server name
-*/}}
-{{- define "jitsi-meet.name-web" -}}
-{{- default .Chart.Name "web" | trimSuffix "-" -}}
-{{- end -}}
-
-{{/*
-Create the XMPP server name
-*/}}
-{{- define "jitsi-meet.name-prosody" -}}
-{{- default .Chart.Name "prosody" | trimSuffix "-" -}}
-{{- end -}}
-
-{{/*
-Create the jicofo cmp name
-*/}}
-{{- define "jitsi-meet.name-jicofo" -}}
-{{- default .Chart.Name "jicofo" | trimSuffix "-" -}}
-{{- end -}}
-
-{{/*
-Create the jicofo config name
-*/}}
-{{- define "jitsi-meet.name-jicofo-config" -}}
-{{- default .Chart.Name "jicofo" "config" | trimSuffix "-" -}}
-{{- end -}}
-
-{{/*
-Create the jvb server name
-*/}}
-{{- define "jitsi-meet.name-jvb" -}}
-{{- default .Chart.Name "jvb" | trimSuffix "-" -}}
-{{- end -}}
-
-{{/*
-Create the jvb config name
-*/}}
-{{- define "jitsi-meet.name-jvb-config" -}}
-{{- default .Chart.Name "jvb" "config" | trimSuffix "-" -}}
-{{- end -}}
-
-{{/*
 Create a default fully qualified app name.
 We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
 If release name contains chart name it will be used as a full name.
@@ -64,6 +22,56 @@ If release name contains chart name it will be used as a full name.
 {{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 {{- end -}}
+{{- end -}}
+
+{{/*
+Create the web server name
+*/}}
+{{- define "jitsi-meet.name-web" -}}
+{{- $name := default .Chart.Name .Values.nameOverride -}}
+{{- printf "%s-%s" $name "web" | trunc 63 -}}
+{{- end -}}
+
+{{/*
+Create the XMPP server name
+*/}}
+{{- define "jitsi-meet.name-prosody" -}}
+{{- printf "%s-%s" .Chart.Name "prosody" | trunc 63 -}}
+{{- end -}}
+
+{{/*
+Create the jicofo cmp name
+*/}}
+{{- define "jitsi-meet.name-jicofo" -}}
+{{- printf "%s-%s" .Chart.Name "jicofo" | trunc 63 -}}
+{{- end -}}
+
+{{/*
+Create the jicofo config name
+*/}}
+{{- define "jitsi-meet.name-jicofo-config" -}}
+{{- printf "%s-%s" .Chart.Name "jicofo-config" | trunc 63 -}}
+{{- end -}}
+
+{{/*
+Create the jvb server name
+*/}}
+{{- define "jitsi-meet.name-jvb" -}}
+{{- printf "%s-%s" .Chart.Name "jvb" | trunc 63 -}}
+{{- end -}}
+
+{{/*
+Create the jvb config name
+*/}}
+{{- define "jitsi-meet.name-jvb-config" -}}
+{{- printf "%s-%s" .Chart.Name "jvb-config" | trunc 63 -}}
+{{- end -}}
+
+{{/*
+Create the sidecar name for jwt auth
+*/}}
+{{- define "jitsi-meet.name-jwt-sidecar" -}}
+{{- printf "%s-%s" .Chart.Name "jwt" | trunc 63 -}}
 {{- end -}}
 
 {{/*

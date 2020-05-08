@@ -1,0 +1,111 @@
+{{- $root := . -}}
+{{- $name := include "jitsi-meet.name-jvb" $root -}}
+{{- range $index, $nbr := until (.Values.prosody.replicaCount | int) }}
+---
+{{- $depName := printf "%s-%d" $name $nbr -}}
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: {{ $depName | quote }}
+  labels:
+{{ include "jitsi-meet.labels" $root | indent 4 }}
+spec:
+  replicas: {{ $root.Values.jvb.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ $depName | quote }}
+      app.kubernetes.io/instance: {{ $root.Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ $depName | quote }}
+        app.kubernetes.io/instance: {{ $root.Release.Name }}
+    spec:
+    {{- with $root.Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      serviceAccountName: {{ include "jitsi-meet.serviceAccountName" $root }}
+      securityContext:
+        {{- toYaml $root.Values.jvb.securityContext | nindent 8 }}
+      containers:
+        - name: {{ $name | quote }}
+          image: {{ printf "%s:%s" $root.Values.jvb.image.repository $root.Values.jvb.image.tag | quote }}
+          imagePullPolicy: {{ $root.Values.jvb.image.pullPolicy | quote }}
+          securityContext:
+            capabilities:
+              add:
+                - SYS_RESOURCE
+                - NET_ADMIN
+          {{- with $root.Values.jvb.podSecurityContext }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          env:
+            - name: XMPP_SERVER
+              value: {{ include "jitsi-meet.name-prosody" $root }}
+            - name: PROSODY_INSTANCE
+              value: {{ printf "%d" $nbr | quote }}
+            {{- if $root.Values.jicofo.userAuth.enabled }}
+            - name: JICOFO_AUTH_USER
+              value: {{ $root.Values.jicofo.userAuth.name }}
+            - name: JICOFO_AUTH_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ template "jitsi-meet.name-jicofo-config" $root }}
+                  key: JICOFO_AUTH_PASSWORD
+            {{- end }}
+            {{- if $root.Values.jvb.userAuth.enabled }}
+            - name: JVB_AUTH_USER
+              value: {{ $root.Values.jvb.userAuth.name }}
+            - name: JVB_AUTH_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ template "jitsi-meet.name-jvb-config" $root }}
+                  key: JVB_AUTH_PASSWORD
+            {{- end }}
+            {{- if $root.Values.jicofo.componentSecret }}
+            - name: JICOFO_COMPONENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "jitsi-meet.name-jicofo-config" $root }}
+                  key: JICOFO_COMPONENT_SECRET
+            {{- end }}
+            - name: JVB_PORT
+              value: {{ printf "%s%s" "3030" (toString $nbr) | quote }}
+            {{- with $root.Values.jvb.environment }}
+              {{- toYaml . | nindent 12 }}
+            {{- end }}
+            {{- with $root.Values.common.environment }}
+              {{- toYaml . | nindent 12 }}
+            {{- end }}
+          ports:
+            - name: video
+              containerPort: {{ printf "%s%s" "3030" (toString $nbr) | int }}
+              protocol: UDP
+          volumeMounts:
+            - name: dockersock
+              mountPath: "/var/run/docker.sock"
+            - name: config
+              mountPath: "/defaults"
+          resources:
+            {{- toYaml $root.Values.jvb.resources | nindent 12 }}
+      volumes:
+        - name: dockersock
+          hostPath:
+            path: /var/run/docker.sock
+        - name: config
+          configMap:
+            name: {{ template "jitsi-meet.name-jvb-config" $root }}-cm
+      {{- with $root.Values.jvb.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with $root.Values.jvb.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with $root.Values.jvb.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+{{- end }}

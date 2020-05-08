@@ -31,8 +31,14 @@ spec:
     - host: {{ .host | quote }}
       http:
         paths:
+        {{- if .oauth }}
+          - path: /oauth2
+            backend:
+              serviceName: "{{ $fullName }}-jwt"
+              servicePort: 4180
+        {{- end }}
         {{- range .paths }}
-          - path: {{ . }}
+          - path: {{ . | quote }}
             backend:
               serviceName: {{ $fullName }}
               servicePort: {{ $svcPort }}

@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "jitsi-meet.name-jicofo-config" . }}-cm
+  labels:
+{{ include "jitsi-meet.labels" . | indent 4 }}
+data:
+  sip-communicator.properties: |-
+    {{- .Files.Get "configs/jicofo/sip-communicator.properties" | nindent 4 }}
